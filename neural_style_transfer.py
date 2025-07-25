@@ -19,6 +19,22 @@ def load_image(img_path, size=None):
 
     return transform(image).unsqueeze(0).to(device)
 
+def rgb_to_yuv(image):
+    rgb_to_yuv_matrix = torch.tensor([
+        [0.299, 0.587, 0.114],
+        [-0.14713, -0.28886, 0.436],
+        [0.615, -0.51499, -0.10001]
+    ]).to(device)
+    return torch.matmul(image.permute(0,2,3,1), rgb_to_yuv_matrix.t()).permute(0,3,1,2)
+
+def yub_to_rgb(image):
+    yub_to_rgb_matrix = torch.tensor([
+    [1.0, 0.0, 1.13983],
+        [1.0, -0.39465, -0.58060],
+        [1.0, 2.03211, 0.0]
+    ]).to(device)
+    return torch.matmul(image.permute(0, 2, 3, 1), yub_to_rgb_matrix.t()).permute(0, 3, 1, 2)
+
 class ContentLoss(nn.Module):
     def __init__(self, target):
         super(ContentLoss, self).__init__()
@@ -148,8 +164,16 @@ def neural_style_transfer(content_path, style_path, output_path, num_steps=300):
     style_img = load_image(style_path, size=None)
     style_img = transforms.Resize((h,w))(style_img)
 
+    content_yuv = rgb_to_yuv(content_img)
+
     output = run_style_transfer(content_img, style_img, num_steps=num_steps)
-    output_img = output.cpu().squeeze(0)
+
+    output_yuv = rgb_to_yuv(output)
+    output_yuv[:, 1: :, :] = content_yuv[:, 1:, :, :]
+
+    color_preserved_output = yub_to_rgb(output_yuv)
+
+    output_img = color_preserved_output.cpu().squeeze(0)
     output_img = transforms.ToPILImage()(output_img)
     output_img.save(output_path)
     print(f"Style transfer complete. Saved to {output_path}")
@@ -157,8 +181,8 @@ def neural_style_transfer(content_path, style_path, output_path, num_steps=300):
 
 if __name__ == "__main__":
     c_time = time.monotonic()
-    content_path = 'field01_scaled.jpg'
-    style_path = 'van01_scaled.jpg'
-    output_path = 'result.jpg'
+    content_path = 'image.jpg'
+    style_path = 'image_style.jpg'
+    output_path = 'result_new.jpg'
     neural_style_transfer(content_path, style_path, output_path)
     print("Total amount: {time.monotonic() - c_time}")

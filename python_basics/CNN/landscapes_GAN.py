@@ -26,6 +26,7 @@ transform = transforms.Compose([
 dataset = datasets.ImageFolder(root="/Users/felipepesantez/Documents/development/datasets/landscapes", transform=transform)
 loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
+#TODO increate the model architecture so the output is higher resolution
 
 #DCGAN
 #Generator
